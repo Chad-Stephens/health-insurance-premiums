@@ -30,7 +30,7 @@ linear relationship with the dependent variable compared to others).
 # Notes
 
 The project was completed in RMarkdown, so there are both code chunks and written work. For those who are interested in replicating or making improvements to my
-work, I have a separate file that only includes the R code. Additionally, the data set used has also been included as a csv file.
+work, I have a separate file that only includes the R code. Additionally, the data set used has also been included as a .xlsx file.
 
 # References
 
