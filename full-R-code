@@ -1,0 +1,141 @@
+library(faraway)
+library(readxl)
+library(readr)
+library(knitr)
+library(leaps)
+library(car)
+library(dplyr)
+library(MASS)
+
+insurance <- read_excel("C:/Users/steph/Downloads/insurance.xlsx")
+
+table(insurance$children)
+
+
+str(insurance)
+
+insurance$sex <- as.factor(insurance$sex)
+insurance$children <- as.factor(insurance$children)
+insurance$smoker <- as.factor(insurance$smoker)
+insurance$region <- as.factor(insurance$region)
+
+str(insurance)
+
+hist(insurance$charges,main="Histogram of medical expenses", xlab = "Expenses",ylab = "Frequency",col="lightblue")
+
+model <- lm(charges ~ ., data=insurance)
+summary(model)
+
+plot(insurance)
+
+par(mfrow = c(2, 2))
+plot(model)
+
+vif(model)
+
+crPlots(model)
+
+model2 <- lm(log(charges) ~ ., data=insurance)
+summary(model2)
+
+par(mfrow = c(2, 2))
+plot(model2)
+
+x <- resid(model2)
+par(mfrow = c(2, 2))
+qqnorm(x)
+qqline(x)
+
+plot(density(x))
+
+bc <- boxcox(model)
+(lambda <- bc$x[which.max(bc$y)])
+
+insurance$y1 <- (insurance$charges^lambda-1)/lambda
+insurance2 <- subset(insurance, select= -c(charges))
+
+model3 <- lm(y1 ~ ., data=insurance2)
+summary(model3)
+
+res <- resid(model3)
+qqnorm(res)
+qqline(res)
+
+plot(density(res))
+
+par(mfrow = c(2, 2))
+plot(model3)
+
+plot(model3,1)
+
+crPlots(model3)
+
+vif(model3)
+
+durbinWatsonTest(model3)
+
+plot(model3,3)
+
+par(mfrow = c(2, 2))
+plot(model3,2)
+plot(density(res))
+
+b <- regsubsets(y1 ~ ., data=insurance2)
+rs <- summary(b)
+print(rs)
+names(rs)
+
+PRESS <- function(linear.model) {
+  #' calculate the predictive residuals
+  pr <- residuals(linear.model)/(1-lm.influence(linear.model)$hat)
+  #' calculate the PRESS
+  PRESS <- sum(pr^2)
+  
+  return(PRESS)
+}
+
+rs$rsq
+rs$adjr2
+rs$cp
+rs$bic
+extractAIC(model3)
+
+model3 <- lm(y1 ~ ., data=insurance2)
+
+
+best_subset <-
+    regsubsets(y1~.,
+               data =insurance2,
+               nbest = 1,      # 1 best model for each number of predictors
+               nvmax = NULL,    # NULL for no limit on number of variables
+               force.in = NULL, force.out = NULL,
+               method = "exhaustive")
+summary_best_subset <- summary(best_subset)
+as.data.frame(summary_best_subset$outmat)
+
+which.max(summary_best_subset$adjr2)
+
+summary_best_subset$which[12,]
+
+summary(model3)
+
+model4 <- lm(y1 ~ .+bmi*smoker, data=insurance2)
+summary(model4)
+
+train <- insurance2[1:1070,]
+validation <- insurance2[1071:1338,]
+
+train_model <- lm(y1 ~ ., data=train)
+summary(train_model)
+
+validation_model <- lm(y1 ~ ., data=validation)
+summary(validation_model)
+
+model_summary <-summary(train_model)
+mse <- mean(model_summary$residuals^2)
+mse
+
+sse <- sum((fitted(validation_model) - validation$y1)^2)
+n <- 268
+mspr <- sse/n # mean squared prediction error
+mspr
